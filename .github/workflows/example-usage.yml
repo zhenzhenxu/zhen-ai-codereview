@@ -1,0 +1,33 @@
+# 示例：如何在你的项目中使用 Zhen AI Code Review
+#
+# 将此文件复制到你的项目的 .github/workflows/ 目录下
+# 并重命名为 code-review.yml
+
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    name: AI Code Review
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: AI Code Review
+        uses: zhenzhenxu/zhen-ai-codereview@main
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          # 以下为可选配置
+          # github_token: ${{ secrets.GITHUB_TOKEN }}  # 默认自动提供
+          # openai_model: 'gpt-4o'                     # 默认 gpt-4o
+          # language: 'zh'                             # zh=中文, en=英文
+          # post_comment: 'true'                       # 是否发表评论
+          # exclude_patterns: '*.md,*.txt'             # 排除的文件模式

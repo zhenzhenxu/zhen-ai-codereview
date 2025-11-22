@@ -1,6 +1,6 @@
 name: 'Zhen AI Code Review'
-description: 'AI-powered code review for pull requests using OpenAI'
-author: 'zhenzhen'
+description: 'AI驱动的代码审查工具，使用OpenAI自动审查PR代码并发表中文评论'
+author: 'zhenzhenxu'
 
 branding:
   icon: 'code'
@@ -8,23 +8,28 @@ branding:
 
 inputs:
   openai_api_key:
-    description: 'OpenAI API key'
+    description: 'OpenAI API Key'
     required: true
   github_token:
-    description: 'GitHub token for posting review comments'
-    required: true
+    description: 'GitHub Token（用于发表评论）'
+    required: false
+    default: ${{ github.token }}
   openai_model:
-    description: 'OpenAI model to use'
+    description: 'OpenAI 模型名称'
     required: false
     default: 'gpt-4o'
+  language:
+    description: '输出语言：zh（中文）或 en（英文）'
+    required: false
+    default: 'zh'
   post_comment:
-    description: 'Whether to post review as PR comment'
+    description: '是否在PR上发表评论'
     required: false
     default: 'true'
-  review_scope:
-    description: 'What to review: "changed" for changed files only, "all" for all files'
+  exclude_patterns:
+    description: '排除的文件模式（逗号分隔），如：*.md,*.txt'
     required: false
-    default: 'changed'
+    default: '*.md,*.txt,*.json,*.lock,*.yml,*.yaml'
 
 runs:
   using: 'composite'
@@ -37,7 +42,7 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        pip install openai PyGithub click python-dotenv rich pydantic gitpython
+        pip install -q openai PyGithub click python-dotenv rich pydantic gitpython
 
     - name: Run AI Code Review
       shell: bash
@@ -45,51 +50,10 @@ runs:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         GITHUB_TOKEN: ${{ inputs.github_token }}
         OPENAI_MODEL: ${{ inputs.openai_model }}
+        REVIEW_LANGUAGE: ${{ inputs.language }}
+        POST_COMMENT: ${{ inputs.post_comment }}
+        EXCLUDE_PATTERNS: ${{ inputs.exclude_patterns }}
+        GITHUB_EVENT_PATH: ${{ github.event_path }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
-        python -c "
-        import os
-        import sys
-        sys.path.insert(0, '${{ github.action_path }}/src')
-
-        from zhen_ai_codereview.config import load_config
-        from zhen_ai_codereview.agent import CodeReviewAgent
-
-        # Get PR info from GitHub context
-        repo = os.environ.get('GITHUB_REPOSITORY', '')
-        event_name = os.environ.get('GITHUB_EVENT_NAME', '')
-
-        if event_name != 'pull_request':
-            print('This action only works on pull_request events')
-            sys.exit(0)
-
-        # Get PR number from GITHUB_REF
-        ref = os.environ.get('GITHUB_REF', '')
-        pr_number = int(ref.split('/')[2]) if '/pull/' in ref else None
-
-        if not pr_number:
-            # Try to get from event path
-            import json
-            event_path = os.environ.get('GITHUB_EVENT_PATH', '')
-            if event_path and os.path.exists(event_path):
-                with open(event_path) as f:
-                    event = json.load(f)
-                    pr_number = event.get('pull_request', {}).get('number')
-
-        if not pr_number:
-            print('Could not determine PR number')
-            sys.exit(1)
-
-        print(f'Reviewing PR #{pr_number} in {repo}')
-
-        config = load_config()
-        agent = CodeReviewAgent(config)
-
-        post_comment = '${{ inputs.post_comment }}' == 'true'
-        report = agent.review_pr(repo, pr_number, post_comment=post_comment)
-
-        print(f'Reviewed {report.reviewed_files}/{report.total_files} files')
-
-        if report.summary:
-            print('\\n--- Summary ---')
-            print(report.summary)
-        "
+        python ${{ github.action_path }}/scripts/review_pr.py
