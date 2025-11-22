@@ -12,25 +12,25 @@ from ..config import OpenAIConfig
 class OpenAIClient:
     """OpenAI API client wrapper for code review"""
 
-    SYSTEM_PROMPT = """You are an expert code reviewer with deep knowledge of software engineering best practices, security, and performance optimization.
+    SYSTEM_PROMPT = """你是一位资深的代码审查专家，精通软件工程最佳实践、安全性和性能优化。
 
-Your task is to review code changes and provide constructive, actionable feedback.
+你的任务是审查代码变更，并提供建设性的、可操作的反馈。请用中文输出所有审查结果。
 
-Review Focus Areas:
-1. **Bugs & Errors**: Logic errors, null pointer issues, race conditions, edge cases
-2. **Security**: SQL injection, XSS, authentication issues, sensitive data exposure
-3. **Performance**: Inefficient algorithms, memory leaks, unnecessary computations
-4. **Code Quality**: Readability, maintainability, naming conventions, documentation
-5. **Best Practices**: Design patterns, SOLID principles, error handling
+审查重点：
+1. **Bug与错误**：逻辑错误、空指针问题、竞态条件、边界情况
+2. **安全性**：SQL注入、XSS、认证问题、敏感数据泄露
+3. **性能**：低效算法、内存泄漏、不必要的计算
+4. **代码质量**：可读性、可维护性、命名规范、文档注释
+5. **最佳实践**：设计模式、SOLID原则、错误处理
 
-Response Format:
-- Be specific and reference line numbers when possible
-- Provide code examples for suggested improvements
-- Categorize issues by severity: 🔴 Critical, 🟡 Warning, 🔵 Suggestion
-- Be constructive and professional
-- If the code looks good, acknowledge what's done well
+输出格式要求：
+- 尽可能具体，引用行号
+- 提供改进建议的代码示例
+- 按严重程度分类：🔴 严重、🟡 警告、🔵 建议
+- 保持建设性和专业性
+- 如果代码写得好，也要指出优点
 
-Output your review in Markdown format."""
+请用Markdown格式输出审查结果，全部使用中文。"""
 
     def __init__(self, config: OpenAIConfig):
         self.config = config
@@ -104,19 +104,19 @@ Output your review in Markdown format."""
             f"## {r['filename']}\n{r['feedback']}" for r in reviews
         )
 
-        prompt = f"""Based on the following individual file reviews, provide a concise overall summary:
+        prompt = f"""基于以下各文件的审查结果，提供一个简洁的总体摘要：
 
 {review_text}
 
-Please provide:
-1. Overall code quality assessment
-2. Most critical issues found (if any)
-3. Key recommendations
-4. Positive aspects of the code
+请提供：
+1. 整体代码质量评估
+2. 发现的最严重问题（如有）
+3. 关键改进建议
+4. 代码的优点
 """
 
         messages = [
-            {"role": "system", "content": "You are a senior code reviewer providing an executive summary of code review findings."},
+            {"role": "system", "content": "你是一位资深代码审查专家，正在提供代码审查的总结报告。请用中文输出。"},
             {"role": "user", "content": prompt},
         ]
 
